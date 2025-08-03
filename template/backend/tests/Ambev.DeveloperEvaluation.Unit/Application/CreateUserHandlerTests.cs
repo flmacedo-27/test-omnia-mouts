@@ -18,6 +18,7 @@ public class CreateUserHandlerTests
     private readonly IUserRepository _userRepository;
     private readonly IMapper _mapper;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly CreateUserCommandValidator _validator;
     private readonly CreateUserHandler _handler;
 
     /// <summary>
@@ -29,7 +30,8 @@ public class CreateUserHandlerTests
         _userRepository = Substitute.For<IUserRepository>();
         _mapper = Substitute.For<IMapper>();
         _passwordHasher = Substitute.For<IPasswordHasher>();
-        _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher);
+        _validator = Substitute.For<CreateUserCommandValidator>(_userRepository);
+        _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher, _validator);
     }
 
     /// <summary>
@@ -63,6 +65,10 @@ public class CreateUserHandlerTests
         _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
             .Returns(user);
         _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
+        
+        // Mock validator to pass validation
+        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new FluentValidation.Results.ValidationResult());
 
         // When
         var createUserResult = await _handler.Handle(command, CancellationToken.None);
@@ -81,6 +87,12 @@ public class CreateUserHandlerTests
     {
         // Given
         var command = new CreateUserCommand(); // Empty command will fail validation
+        
+        // Mock validator to fail validation
+        var validationResult = new FluentValidation.Results.ValidationResult();
+        validationResult.Errors.Add(new FluentValidation.Results.ValidationFailure("Email", "Email is required"));
+        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
+            .Returns(validationResult);
 
         // When
         var act = () => _handler.Handle(command, CancellationToken.None);
@@ -148,6 +160,10 @@ public class CreateUserHandlerTests
         _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
             .Returns(user);
         _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
+        
+        // Mock validator to pass validation
+        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
+            .Returns(new FluentValidation.Results.ValidationResult());
 
         // When
         await _handler.Handle(command, CancellationToken.None);
