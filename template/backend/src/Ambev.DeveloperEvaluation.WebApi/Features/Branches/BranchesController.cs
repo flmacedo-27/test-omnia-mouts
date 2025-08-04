@@ -92,6 +92,8 @@ public class BranchesController : BaseController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The list of branches</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<BranchListItem>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListBranches([FromQuery] ListBranchesRequest request, CancellationToken cancellationToken)
     {
         var validator = new ListBranchesRequestValidator();
@@ -101,10 +103,9 @@ public class BranchesController : BaseController
             return BadRequest(validationResult.Errors);
 
         var command = _mapper.Map<ListBranchesCommand>(request);
-        var result = await _mediator.Send(command, cancellationToken);
-        
-        var response = _mapper.Map<ListBranchesResponse>(result);
-        return Ok(response);
+        var response = await _mediator.Send(command, cancellationToken);
+
+        return OkPaginated(response.ToPaginatedList());
     }
 
     /// <summary>

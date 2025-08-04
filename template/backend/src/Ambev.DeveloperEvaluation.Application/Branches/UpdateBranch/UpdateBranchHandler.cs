@@ -2,6 +2,7 @@ using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using FluentValidation;
 
 namespace Ambev.DeveloperEvaluation.Application.Branches.UpdateBranch;
 
@@ -10,32 +11,34 @@ public class UpdateBranchHandler : IRequestHandler<UpdateBranchCommand, UpdateBr
     private readonly IBranchRepository _branchRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<UpdateBranchHandler> _logger;
+    private readonly UpdateBranchCommandValidator _validator;
 
     public UpdateBranchHandler(
         IBranchRepository branchRepository, 
         IMapper mapper,
-        ILogger<UpdateBranchHandler> logger)
+        ILogger<UpdateBranchHandler> logger,
+        UpdateBranchCommandValidator validator)
     {
         _branchRepository = branchRepository;
         _mapper = mapper;
         _logger = logger;
+        _validator = validator;
     }
 
     public async Task<UpdateBranchResult?> Handle(UpdateBranchCommand request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Updating branch with ID: {BranchId}", request.Id);
 
-        var branch = await _branchRepository.GetByIdAsync(request.Id, cancellationToken);
-        
-        if (branch == null)
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
         {
-            _logger.LogWarning("Branch not found for update with ID: {BranchId}", request.Id);
-            return null;
+            _logger.LogWarning("Validation failed for branch update: {ValidationErrors}", 
+                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+            throw new ValidationException(validationResult.Errors);
         }
 
-        _logger.LogDebug("Branch found, updating with new values. Old name: {OldName}, New name: {NewName}", 
-            branch.Name, request.Name);
-
+        var branch = await _branchRepository.GetByIdAsync(request.Id, cancellationToken);
+        
         branch.Update(request.Name, request.Code, request.Address);
         
         var updatedBranch = await _branchRepository.UpdateAsync(branch, cancellationToken);

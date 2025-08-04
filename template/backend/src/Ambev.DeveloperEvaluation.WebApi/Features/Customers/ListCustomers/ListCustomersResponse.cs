@@ -1,57 +1,23 @@
 using Ambev.DeveloperEvaluation.Domain.Enums;
 using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.Application.Customers.ListCustomers;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Customers.ListCustomers;
 
 /// <summary>
-/// Response for listing customers.
+/// Response for listing customers with pagination.
 /// </summary>
-public class ListCustomersResponse : PaginatedResponseBase<CustomerListItem>
-{
-}
-
-/// <summary>
-/// Represents a customer item in the list.
-/// </summary>
-public class CustomerListItem
+public class ListCustomersResponse : PaginatedList<CustomerListItem>
 {
     /// <summary>
-    /// Gets or sets the customer ID.
+    /// Initializes a new instance of ListCustomersResponse
     /// </summary>
-    public Guid Id { get; set; }
-
-    /// <summary>
-    /// Gets or sets the customer name.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the customer email.
-    /// </summary>
-    public string Email { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the customer phone number.
-    /// </summary>
-    public string Phone { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the customer document number.
-    /// </summary>
-    public string DocumentNumber { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the customer type.
-    /// </summary>
-    public CustomerType CustomerType { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether the customer is active.
-    /// </summary>
-    public bool Active { get; set; }
-
-    /// <summary>
-    /// Gets or sets the creation date.
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
+    /// <param name="customers">The list of customers</param>
+    /// <param name="totalCount">The total count of customers</param>
+    /// <param name="currentPage">The current page number</param>
+    /// <param name="pageSize">The page size</param>
+    public ListCustomersResponse(IEnumerable<CustomerListItem> customers, int totalCount, int currentPage, int pageSize)
+        : base(customers.ToList(), totalCount, currentPage, pageSize)
+    {
+    }
 } 

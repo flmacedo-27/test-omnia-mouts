@@ -86,6 +86,8 @@ public class ProductsController : BaseController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The list of products</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<ProductListItem>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListProducts([FromQuery] ListProductsRequest request, CancellationToken cancellationToken)
     {
         var validator = new ListProductsRequestValidator();
@@ -95,10 +97,9 @@ public class ProductsController : BaseController
             return BadRequest(validationResult.Errors);
 
         var command = _mapper.Map<ListProductsCommand>(request);
-        var result = await _mediator.Send(command, cancellationToken);
-        
-        var response = _mapper.Map<ListProductsResponse>(result);
-        return Ok(response);
+        var response = await _mediator.Send(command, cancellationToken);
+
+        return OkPaginated(response.ToPaginatedList());
     }
 
     /// <summary>

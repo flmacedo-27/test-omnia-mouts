@@ -14,8 +14,5 @@ public class ListCustomersRequestProfile : Profile
     public ListCustomersRequestProfile()
     {
         CreateMap<ListCustomersRequest, ListCustomersCommand>();
-        CreateMap<ListCustomersResult, ListCustomersResponse>()
-            .ForMember(dest => dest.Data, opt => opt.MapFrom(src => src.Customers));
-        CreateMap<Application.Customers.ListCustomers.CustomerListItem, CustomerListItem>();
     }
 } 

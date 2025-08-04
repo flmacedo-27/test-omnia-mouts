@@ -14,8 +14,5 @@ public class ListBranchesRequestProfile : Profile
     public ListBranchesRequestProfile()
     {
         CreateMap<ListBranchesRequest, ListBranchesCommand>();
-        CreateMap<ListBranchesResult, ListBranchesResponse>()
-            .ForMember(dest => dest.Data, opt => opt.MapFrom(src => src.Branches));
-        CreateMap<Application.Branches.ListBranches.BranchListItem, BranchListItem>();
     }
 } 

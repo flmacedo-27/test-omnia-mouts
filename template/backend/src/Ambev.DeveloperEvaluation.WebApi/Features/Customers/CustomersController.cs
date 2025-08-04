@@ -92,6 +92,8 @@ public class CustomersController : BaseController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The list of customers</returns>
     [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResponse<CustomerListItem>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListCustomers([FromQuery] ListCustomersRequest request, CancellationToken cancellationToken)
     {
         var validator = new ListCustomersRequestValidator();
@@ -101,10 +103,9 @@ public class CustomersController : BaseController
             return BadRequest(validationResult.Errors);
 
         var command = _mapper.Map<ListCustomersCommand>(request);
-        var result = await _mediator.Send(command, cancellationToken);
-        
-        var response = _mapper.Map<ListCustomersResponse>(result);
-        return Ok(response);
+        var response = await _mediator.Send(command, cancellationToken);
+
+        return OkPaginated(response.ToPaginatedList());
     }
 
     /// <summary>

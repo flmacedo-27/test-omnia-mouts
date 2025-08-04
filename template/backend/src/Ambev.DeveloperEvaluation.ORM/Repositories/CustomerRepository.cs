@@ -82,26 +82,71 @@ public class CustomerRepository : ICustomerRepository
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             var customer = await GetByIdAsync(id, cancellationToken);
-            if (customer == null)
-            {
-                _logger.LogWarning("Customer not found for deletion with ID: {CustomerId}", id);
-                return false;
-            }
-
+            
             _context.Customers.Remove(customer);
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("Customer deleted successfully with ID: {CustomerId}", id);
-            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error deleting customer with ID: {CustomerId}", id);
             throw;
+        }
+    }
+
+    public async Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.Email == email, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer with email: {CustomerEmail}", email);
+            throw new InvalidOperationException("Failed to retrieve customer by email", ex);
+        }
+    }
+
+    public async Task<Customer?> GetByDocumentNumberAsync(string documentNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.DocumentNumber == documentNumber, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer with document number: {CustomerDocument}", documentNumber);
+            throw new InvalidOperationException("Failed to retrieve customer by document number", ex);
+        }
+    }
+
+    public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Customers.AnyAsync(c => c.Email == email, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if customer exists with email: {CustomerEmail}", email);
+            throw new InvalidOperationException("Failed to check if customer exists", ex);
+        }
+    }
+
+    public async Task<bool> ExistsByDocumentNumberAsync(string documentNumber, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Customers.AnyAsync(c => c.DocumentNumber == documentNumber, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if customer exists with document number: {CustomerDocument}", documentNumber);
+            throw new InvalidOperationException("Failed to check if customer exists", ex);
         }
     }
 }
