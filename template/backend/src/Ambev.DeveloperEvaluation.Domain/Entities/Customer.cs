@@ -40,21 +40,10 @@ public class Customer : BaseEntity
     public bool Active { get; set; }
 
     /// <summary>
-    /// Gets the date and time when the customer was created.
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
-    /// Gets the date and time of the last update to the customer.
-    /// </summary>
-    public DateTime? UpdatedAt { get; set; }
-
-    /// <summary>
     /// Initializes a new instance of the Customer class.
     /// </summary>
     public Customer()
     {
-        CreatedAt = DateTime.UtcNow;
         Active = true;
     }
 
@@ -74,6 +63,6 @@ public class Customer : BaseEntity
         CustomerType = customerType;
         DocumentNumber = documentNumber;
         Active = active;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 }

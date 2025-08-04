@@ -78,9 +78,6 @@ public class CustomersController : BaseController
         var command = new GetCustomerCommand { Id = id };
         var result = await _mediator.Send(command, cancellationToken);
         
-        if (result == null)
-            return NotFound();
-        
         var response = _mapper.Map<GetCustomerResponse>(result);
         return Ok(response);
     }
@@ -128,11 +125,8 @@ public class CustomersController : BaseController
         command.Id = id;
         
         var result = await _mediator.Send(command, cancellationToken);
-        
-        if (result == null)
-            return NotFound();
-        
         var response = _mapper.Map<UpdateCustomerResponse>(result);
+
         return Ok(response);
     }
 
@@ -158,9 +152,6 @@ public class CustomersController : BaseController
         var command = _mapper.Map<DeleteCustomerCommand>(request);
         var result = await _mediator.Send(command, cancellationToken);
         
-        if (!result.Success)
-            return NotFound(new { message = result.Message });
-
         return Ok(new { message = result.Message });
     }
 } 

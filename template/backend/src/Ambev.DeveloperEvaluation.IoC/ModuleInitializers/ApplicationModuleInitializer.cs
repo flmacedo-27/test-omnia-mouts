@@ -1,5 +1,6 @@
 ﻿using Ambev.DeveloperEvaluation.Application.Branches.CreateBranch;
 using Ambev.DeveloperEvaluation.Application.Branches.DeleteBranch;
+using Ambev.DeveloperEvaluation.Application.Branches.GetBranch;
 using Ambev.DeveloperEvaluation.Application.Branches.UpdateBranch;
 using Ambev.DeveloperEvaluation.Application.Customers.CreateCustomer;
 using Ambev.DeveloperEvaluation.Application.Customers.DeleteCustomer;
@@ -9,6 +10,9 @@ using Ambev.DeveloperEvaluation.Application.Products.CreateProduct;
 using Ambev.DeveloperEvaluation.Application.Products.DeleteProduct;
 using Ambev.DeveloperEvaluation.Application.Products.GetProduct;
 using Ambev.DeveloperEvaluation.Application.Products.UpdateProduct;
+using Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
+using Ambev.DeveloperEvaluation.Application.Sales.CancelSale;
+using Ambev.DeveloperEvaluation.Application.Sales.GetSale;
 using Ambev.DeveloperEvaluation.Application.Users.CreateUser;
 using Ambev.DeveloperEvaluation.Application.Users.DeleteUser;
 using Ambev.DeveloperEvaluation.Application.Users.GetUser;
@@ -31,6 +35,7 @@ public class ApplicationModuleInitializer : IModuleInitializer
         builder.Services.AddScoped<UpdateUserCommandValidator>();
         builder.Services.AddScoped<CreateBranchCommandValidator>();
         builder.Services.AddScoped<DeleteBranchCommandValidator>();
+        builder.Services.AddScoped<GetBranchCommandValidator>();
         builder.Services.AddScoped<UpdateBranchCommandValidator>();
         builder.Services.AddScoped<CreateCustomerCommandValidator>();
         builder.Services.AddScoped<DeleteCustomerCommandValidator>();
@@ -40,5 +45,8 @@ public class ApplicationModuleInitializer : IModuleInitializer
         builder.Services.AddScoped<DeleteProductCommandValidator>();
         builder.Services.AddScoped<UpdateProductCommandValidator>();
         builder.Services.AddScoped<GetProductCommandValidator>();
+        builder.Services.AddScoped<CreateSaleCommandValidator>();
+        builder.Services.AddScoped<CancelSaleCommandValidator>();
+        builder.Services.AddScoped<GetSaleCommandValidator>();
     }
 }

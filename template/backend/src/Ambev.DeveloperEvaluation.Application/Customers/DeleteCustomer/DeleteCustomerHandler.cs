@@ -1,6 +1,6 @@
-using MediatR;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Application.Customers.DeleteCustomer;
