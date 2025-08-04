@@ -1,12 +1,15 @@
 using Ambev.DeveloperEvaluation.Application.Users.CreateUser;
-using Ambev.DeveloperEvaluation.Common.Security;
 using Ambev.DeveloperEvaluation.Domain.Entities;
+using Ambev.DeveloperEvaluation.Domain.Enums;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Unit.Domain;
+using Ambev.DeveloperEvaluation.Common.Security;
 using AutoMapper;
 using FluentAssertions;
+using FluentValidation;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
+using Ambev.DeveloperEvaluation.Unit.Domain;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application;
 
@@ -23,14 +26,13 @@ public class CreateUserHandlerTests
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CreateUserHandlerTests"/> class.
-    /// Sets up the test dependencies and creates fake data generators.
     /// </summary>
     public CreateUserHandlerTests()
     {
         _userRepository = Substitute.For<IUserRepository>();
         _mapper = Substitute.For<IMapper>();
         _passwordHasher = Substitute.For<IPasswordHasher>();
-        _validator = Substitute.For<CreateUserCommandValidator>(_userRepository);
+        _validator = new CreateUserCommandValidator(_userRepository);
         _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher, _validator);
     }
 
@@ -58,17 +60,16 @@ public class CreateUserHandlerTests
             Id = user.Id,
         };
 
-
         _mapper.Map<User>(command).Returns(user);
         _mapper.Map<CreateUserResult>(user).Returns(result);
 
         _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
             .Returns(user);
         _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
-        
+
         // Mock validator to pass validation
-        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new FluentValidation.Results.ValidationResult());
+        _userRepository.ExistsByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // When
         var createUserResult = await _handler.Handle(command, CancellationToken.None);
@@ -86,19 +87,25 @@ public class CreateUserHandlerTests
     public async Task Handle_InvalidRequest_ThrowsValidationException()
     {
         // Given
-        var command = new CreateUserCommand(); // Empty command will fail validation
-        
+        var command = new CreateUserCommand
+        {
+            Username = "testuser",
+            Email = "test@email.com",
+            Password = "password123",
+            Phone = "(11) 99999-9999",
+            Status = UserStatus.Active,
+            Role = UserRole.Admin
+        };
+
         // Mock validator to fail validation
-        var validationResult = new FluentValidation.Results.ValidationResult();
-        validationResult.Errors.Add(new FluentValidation.Results.ValidationFailure("Email", "Email is required"));
-        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
-            .Returns(validationResult);
+        _userRepository.ExistsByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(true);
 
         // When
         var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Then
-        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
+        await act.Should().ThrowAsync<ValidationException>();
     }
 
     /// <summary>
@@ -126,6 +133,10 @@ public class CreateUserHandlerTests
         _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
             .Returns(user);
         _passwordHasher.HashPassword(originalPassword).Returns(hashedPassword);
+
+        // Mock validator to pass validation
+        _userRepository.ExistsByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // When
         await _handler.Handle(command, CancellationToken.None);
@@ -160,20 +171,16 @@ public class CreateUserHandlerTests
         _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
             .Returns(user);
         _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
-        
+
         // Mock validator to pass validation
-        _validator.ValidateAsync(Arg.Any<CreateUserCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new FluentValidation.Results.ValidationResult());
+        _userRepository.ExistsByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(false);
 
         // When
         await _handler.Handle(command, CancellationToken.None);
 
         // Then
-        _mapper.Received(1).Map<User>(Arg.Is<CreateUserCommand>(c =>
-            c.Username == command.Username &&
-            c.Email == command.Email &&
-            c.Phone == command.Phone &&
-            c.Status == command.Status &&
-            c.Role == command.Role));
+        _mapper.Received(1).Map<User>(command);
+        _mapper.Received(1).Map<CreateUserResult>(user);
     }
 }
