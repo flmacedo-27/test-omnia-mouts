@@ -29,17 +29,8 @@ public class ListUserHandler : IRequestHandler<ListUserCommand, ListUserResult>
 
         var userListItems = _mapper.Map<IEnumerable<UserListItem>>(users);
 
-        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
-
         _logger.LogDebug("Found {UserCount} users out of {TotalCount} total", userListItems.Count(), totalCount);
 
-        return new ListUserResult
-        {
-            Users = userListItems,
-            TotalCount = totalCount,
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            TotalPages = totalPages
-        };
+        return new ListUserResult(userListItems, totalCount, request.PageNumber, request.PageSize);
     }
 } 

@@ -1,24 +1,22 @@
-using Ambev.DeveloperEvaluation.Domain.Enums;
+using Ambev.DeveloperEvaluation.WebApi.Common;
+using Ambev.DeveloperEvaluation.Application.Users.ListUser;
 
 namespace Ambev.DeveloperEvaluation.WebApi.Features.Users.ListUsers;
 
-public class ListUsersResponse
+/// <summary>
+/// Response for listing users with pagination.
+/// </summary>
+public class ListUsersResponse : PaginatedList<UserListItem>
 {
-    public IEnumerable<UserListItem> Users { get; set; } = Enumerable.Empty<UserListItem>();
-    public int TotalCount { get; set; }
-    public int PageNumber { get; set; }
-    public int PageSize { get; set; }
-    public int TotalPages { get; set; }
-}
-
-public class UserListItem
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public UserRole Role { get; set; }
-    public UserStatus Status { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    /// <summary>
+    /// Initializes a new instance of ListUsersResponse
+    /// </summary>
+    /// <param name="users">The list of users</param>
+    /// <param name="totalCount">The total count of users</param>
+    /// <param name="currentPage">The current page number</param>
+    /// <param name="pageSize">The page size</param>
+    public ListUsersResponse(IEnumerable<UserListItem> users, int totalCount, int currentPage, int pageSize)
+        : base(users.ToList(), totalCount, currentPage, pageSize)
+    {
+    }
 } 

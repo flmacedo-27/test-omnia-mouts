@@ -27,21 +27,10 @@ public class ListCustomersHandler : IRequestHandler<ListCustomersCommand, ListCu
 
         var (customers, totalCount) = await _customerRepository.GetAllAsync(request.PageNumber, request.PageSize, cancellationToken);
 
-        _logger.LogInformation("Found {Count} customers, total: {TotalCount}", customers.Count(), totalCount);
-
         var customerItems = _mapper.Map<IEnumerable<CustomerListItem>>(customers);
 
-        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
+        _logger.LogDebug("Found {CustomerCount} customers out of {TotalCount} total", customerItems.Count(), totalCount);
 
-        _logger.LogDebug("Returning {CustomerCount} customers with {TotalPages} total pages", customerItems.Count(), totalPages);
-
-        return new ListCustomersResult
-        {
-            Customers = customerItems,
-            TotalCount = totalCount,
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            TotalPages = totalPages
-        };
+        return new ListCustomersResult(customerItems, totalCount, request.PageNumber, request.PageSize);
     }
 } 

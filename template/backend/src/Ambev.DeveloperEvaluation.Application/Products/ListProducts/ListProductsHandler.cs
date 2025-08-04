@@ -27,21 +27,10 @@ public class ListProductsHandler : IRequestHandler<ListProductsCommand, ListProd
 
         var (products, totalCount) = await _productRepository.GetAllAsync(request.PageNumber, request.PageSize, cancellationToken);
 
-        _logger.LogInformation("Found {Count} products, total: {TotalCount}", products.Count(), totalCount);
-
         var productItems = _mapper.Map<IEnumerable<ProductListItem>>(products);
 
-        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
+        _logger.LogDebug("Found {ProductCount} products out of {TotalCount} total", productItems.Count(), totalCount);
 
-        _logger.LogDebug("Returning {ProductCount} products with {TotalPages} total pages", productItems.Count(), totalPages);
-
-        return new ListProductsResult
-        {
-            Products = productItems,
-            TotalCount = totalCount,
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            TotalPages = totalPages
-        };
+        return new ListProductsResult(productItems, totalCount, request.PageNumber, request.PageSize);
     }
 } 

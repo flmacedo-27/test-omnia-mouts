@@ -8,7 +8,5 @@ public class ListUsersRequestProfile : Profile
     public ListUsersRequestProfile()
     {
         CreateMap<ListUsersRequest, ListUserCommand>();
-        CreateMap<ListUserResult, ListUsersResponse>();
-        CreateMap<Application.Users.ListUser.UserListItem, UserListItem>();
     }
 } 

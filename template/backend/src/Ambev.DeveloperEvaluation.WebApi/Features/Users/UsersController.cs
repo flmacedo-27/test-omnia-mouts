@@ -163,7 +163,7 @@ public class UsersController : BaseController
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The list of users with pagination information</returns>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponseWithData<ListUsersResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResponse<UserListItem>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ListUsers([FromQuery] ListUsersRequest request, CancellationToken cancellationToken)
     {
@@ -176,11 +176,6 @@ public class UsersController : BaseController
         var command = _mapper.Map<ListUserCommand>(request);
         var response = await _mediator.Send(command, cancellationToken);
 
-        return Ok(new ApiResponseWithData<ListUsersResponse>
-        {
-            Success = true,
-            Message = "Users retrieved successfully",
-            Data = _mapper.Map<ListUsersResponse>(response)
-        });
+        return OkPaginated(response.ToPaginatedList());
     }
 }

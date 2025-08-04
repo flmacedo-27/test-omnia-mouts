@@ -27,21 +27,10 @@ public class ListBranchesHandler : IRequestHandler<ListBranchesCommand, ListBran
 
         var (branches, totalCount) = await _branchRepository.GetAllAsync(request.PageNumber, request.PageSize, cancellationToken);
 
-        _logger.LogInformation("Found {Count} branches, total: {TotalCount}", branches.Count(), totalCount);
-
         var branchItems = _mapper.Map<IEnumerable<BranchListItem>>(branches);
 
-        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
+        _logger.LogDebug("Found {BranchCount} branches out of {TotalCount} total", branchItems.Count(), totalCount);
 
-        _logger.LogDebug("Returning {BranchCount} branches with {TotalPages} total pages", branchItems.Count(), totalPages);
-
-        return new ListBranchesResult
-        {
-            Branches = branchItems,
-            TotalCount = totalCount,
-            PageNumber = request.PageNumber,
-            PageSize = request.PageSize,
-            TotalPages = totalPages
-        };
+        return new ListBranchesResult(branchItems, totalCount, request.PageNumber, request.PageSize);
     }
 } 
