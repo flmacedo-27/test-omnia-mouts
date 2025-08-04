@@ -27,8 +27,11 @@ public class CreateSaleCommandValidator : AbstractValidator<CreateSaleCommand>
             .NotEmpty()
             .WithMessage("Customer ID is required")
             .MustAsync(async (customerId, cancellation) => 
-                await customerRepository.GetByIdAsync(customerId, cancellation) != null)
-            .WithMessage("Customer not found");
+            {
+                var customer = await customerRepository.GetByIdAsync(customerId, cancellation);
+                return customer != null && customer.Active;
+            })
+            .WithMessage("Customer not found or inactive");
 
         RuleFor(x => x.BranchId)
             .NotEmpty()
@@ -60,8 +63,11 @@ public class CreateSaleItemCommandValidator : AbstractValidator<CreateSaleItemCo
             .NotEmpty()
             .WithMessage("Product ID is required")
             .MustAsync(async (productId, cancellation) => 
-                await productRepository.GetByIdAsync(productId, cancellation) != null)
-            .WithMessage($"Product not found");
+            {
+                var product = await productRepository.GetByIdAsync(productId, cancellation);
+                return product != null && product.Active;
+            })
+            .WithMessage("Product not found or inactive");
 
         RuleFor(x => x.Quantity)
             .GreaterThan(0)
