@@ -24,11 +24,6 @@ public class BranchRepository : IBranchRepository
             await _context.SaveChangesAsync(cancellationToken);
             return branch;
         }
-        catch (DbUpdateException ex)
-        {
-            _logger.LogError(ex, "Database error creating branch with name: {BranchName}", branch.Name);
-            throw new InvalidOperationException("Failed to create branch due to database error", ex);
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error creating branch with name: {BranchName}", branch.Name);
@@ -78,11 +73,6 @@ public class BranchRepository : IBranchRepository
             _context.Branches.Update(branch);
             await _context.SaveChangesAsync(cancellationToken);
             return branch;
-        }
-        catch (DbUpdateException ex)
-        {
-            _logger.LogError(ex, "Database error updating branch with ID: {BranchId}", branch.Id);
-            throw new InvalidOperationException("Failed to update branch due to database error", ex);
         }
         catch (Exception ex)
         {
