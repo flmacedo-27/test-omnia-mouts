@@ -43,21 +43,10 @@ public class Product : BaseEntity
     public bool Active { get; set; }
 
     /// <summary>
-    /// Gets the date and time when the product was created.
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
-    /// Gets the date and time of the last update to the product.
-    /// </summary>
-    public DateTime? UpdatedAt { get; set; }
-
-    /// <summary>
     /// Initializes a new instance of the Product class.
     /// </summary>
     public Product()
     {
-        CreatedAt = DateTime.UtcNow;
         Active = true;
     }
 
@@ -78,7 +67,7 @@ public class Product : BaseEntity
         Price = price;
         StockQuantity = stockQuantity;
         SKU = sku;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 
     /// <summary>
@@ -88,7 +77,7 @@ public class Product : BaseEntity
     public void UpdateStock(int newQuantity)
     {
         StockQuantity = newQuantity;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 
     /// <summary>
@@ -98,7 +87,7 @@ public class Product : BaseEntity
     public void Activate()
     {
         Active = true;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 
     /// <summary>
@@ -108,6 +97,6 @@ public class Product : BaseEntity
     public void Deactivate()
     {
         Active = false;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 } 

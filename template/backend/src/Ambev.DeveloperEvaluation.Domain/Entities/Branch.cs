@@ -28,21 +28,10 @@ public class Branch : BaseEntity
     public bool Active { get; set; }
 
     /// <summary>
-    /// Gets the date and time when the branch was created.
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
-    /// Gets the date and time of the last update to the branch.
-    /// </summary>
-    public DateTime? UpdatedAt { get; set; }
-
-    /// <summary>
     /// Initializes a new instance of the Branch class.
     /// </summary>
     public Branch()
     {
-        CreatedAt = DateTime.UtcNow;
         Active = true;
     }
 
@@ -58,6 +47,6 @@ public class Branch : BaseEntity
         Name = name;
         Code = code;
         Address = address;
-        UpdatedAt = DateTime.UtcNow;
+        UpdateTimestamp();
     }
 }
