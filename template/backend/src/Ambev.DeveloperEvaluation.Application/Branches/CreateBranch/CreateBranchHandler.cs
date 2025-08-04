@@ -1,43 +1,27 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
-using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Application.Branches.CreateBranch;
 
-public class CreateBranchHandler : IRequestHandler<CreateBranchCommand, CreateBranchResult>
+public class CreateBranchHandler : BaseHandler<CreateBranchCommand, CreateBranchResult, CreateBranchCommandValidator>
 {
     private readonly IBranchRepository _branchRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CreateBranchHandler> _logger;
-    private readonly CreateBranchCommandValidator _validator;
 
     public CreateBranchHandler(
         IBranchRepository branchRepository, 
         IMapper mapper,
         ILogger<CreateBranchHandler> logger,
         CreateBranchCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _branchRepository = branchRepository;
-        _mapper = mapper;
-        _logger = logger;
-        _validator = validator;
     }
 
-    public async Task<CreateBranchResult> Handle(CreateBranchCommand request, CancellationToken cancellationToken)
+    protected override async Task<CreateBranchResult> ExecuteAsync(CreateBranchCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating branch with name: {BranchName}", request.Name);
-
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            _logger.LogWarning("Validation failed for branch creation: {ValidationErrors}", 
-                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var branch = new Branch
         {
             Name = request.Name,
@@ -47,8 +31,23 @@ public class CreateBranchHandler : IRequestHandler<CreateBranchCommand, CreateBr
 
         var createdBranch = await _branchRepository.CreateAsync(branch, cancellationToken);
 
-        _logger.LogInformation("Branch created successfully with ID: {BranchId}", createdBranch.Id);
+        return Mapper.Map<CreateBranchResult>(createdBranch);
+    }
 
-        return _mapper.Map<CreateBranchResult>(createdBranch);
+    protected override void LogOperationStart(CreateBranchCommand request)
+    {
+        Logger.LogInformation("Creating branch with name: {BranchName}", request.Name);
+    }
+
+    protected override void LogOperationSuccess(CreateBranchCommand request, CreateBranchResult result)
+    {
+        if (result != null)
+        {
+            Logger.LogInformation("Branch created successfully with ID: {BranchId}", result.Id);
+        }
+        else
+        {
+            Logger.LogWarning("Branch creation completed but result is null");
+        }
     }
 } 

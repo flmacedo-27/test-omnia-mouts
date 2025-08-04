@@ -1,59 +1,38 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Events;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using FluentValidation;
 
 namespace Ambev.DeveloperEvaluation.Application.Sales.CreateSale;
 
 /// <summary>
 /// Handler for creating a new sale
 /// </summary>
-public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleResult>
+public class CreateSaleHandler : BaseHandler<CreateSaleCommand, CreateSaleResult, CreateSaleCommandValidator>
 {
     private readonly ISaleRepository _saleRepository;
-    private readonly ICustomerRepository _customerRepository;
-    private readonly IBranchRepository _branchRepository;
     private readonly IProductRepository _productRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CreateSaleHandler> _logger;
     private readonly IMediator _mediator;
-    private readonly CreateSaleCommandValidator _validator;
 
     public CreateSaleHandler(
         ISaleRepository saleRepository,
-        ICustomerRepository customerRepository,
-        IBranchRepository branchRepository,
         IProductRepository productRepository,
         IMapper mapper,
         ILogger<CreateSaleHandler> logger,
         IMediator mediator,
         CreateSaleCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _saleRepository = saleRepository;
-        _customerRepository = customerRepository;
-        _branchRepository = branchRepository;
         _productRepository = productRepository;
-        _mapper = mapper;
-        _logger = logger;
         _mediator = mediator;
-        _validator = validator;
     }
 
-    public async Task<CreateSaleResult> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
+    protected override async Task<CreateSaleResult> ExecuteAsync(CreateSaleCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating sale for customer {CustomerId} at branch {BranchId}", request.CustomerId, request.BranchId);
-
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            _logger.LogWarning("Validation failed for sale creation: {ValidationErrors}",
-                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            throw new ValidationException(validationResult.Errors);
-        }
-
         foreach (var item in request.Items)
         {
             var product = await _productRepository.GetByIdAsync(item.ProductId, cancellationToken);
@@ -99,9 +78,6 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
 
         var createdSale = await _saleRepository.CreateAsync(sale, cancellationToken);
 
-        _logger.LogInformation("Sale {SaleNumber} created successfully with total amount {TotalAmount}", 
-            createdSale.SaleNumber, createdSale.TotalAmount);
-
         var saleCreatedEvent = new SaleCreatedEvent(
             createdSale.Id,
             createdSale.SaleNumber,
@@ -112,6 +88,17 @@ public class CreateSaleHandler : IRequestHandler<CreateSaleCommand, CreateSaleRe
 
         await _mediator.Publish(saleCreatedEvent, cancellationToken);
 
-        return _mapper.Map<CreateSaleResult>(createdSale);
+        return Mapper.Map<CreateSaleResult>(createdSale);
+    }
+
+    protected override void LogOperationStart(CreateSaleCommand request)
+    {
+        Logger.LogInformation("Creating sale for customer {CustomerId} at branch {BranchId}", request.CustomerId, request.BranchId);
+    }
+
+    protected override void LogOperationSuccess(CreateSaleCommand request, CreateSaleResult result)
+    {
+        Logger.LogInformation("Sale {SaleNumber} created successfully with total amount {TotalAmount}", 
+            result.SaleNumber, result.TotalAmount);
     }
 } 

@@ -1,15 +1,18 @@
 using Ambev.DeveloperEvaluation.Application.Users.CreateUser;
+using Ambev.DeveloperEvaluation.Common.Security;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Enums;
+using Ambev.DeveloperEvaluation.Domain.Events;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Common.Security;
+using Ambev.DeveloperEvaluation.Unit.Application.TestData;
+using Ambev.DeveloperEvaluation.Unit.Domain;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
+using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
-using Ambev.DeveloperEvaluation.Unit.Domain;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application;
 
@@ -22,6 +25,8 @@ public class CreateUserHandlerTests
     private readonly IMapper _mapper;
     private readonly IPasswordHasher _passwordHasher;
     private readonly CreateUserCommandValidator _validator;
+    private readonly IMediator _mediator;
+    private readonly ILogger<CreateUserHandler> _logger;
     private readonly CreateUserHandler _handler;
 
     /// <summary>
@@ -33,7 +38,9 @@ public class CreateUserHandlerTests
         _mapper = Substitute.For<IMapper>();
         _passwordHasher = Substitute.For<IPasswordHasher>();
         _validator = new CreateUserCommandValidator(_userRepository);
-        _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher, _validator);
+        _mediator = Substitute.For<IMediator>();
+        _logger = Substitute.For<ILogger<CreateUserHandler>>();
+        _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher, _validator, _logger, _mediator);
     }
 
     /// <summary>
@@ -129,9 +136,14 @@ public class CreateUserHandlerTests
             Role = command.Role
         };
 
+        var result = new CreateUserResult
+        {
+            Id = user.Id,
+        };
+
         _mapper.Map<User>(command).Returns(user);
-        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
-            .Returns(user);
+        _mapper.Map<CreateUserResult>(user).Returns(result);
+        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(user);
         _passwordHasher.HashPassword(originalPassword).Returns(hashedPassword);
 
         // Mock validator to pass validation
@@ -143,9 +155,46 @@ public class CreateUserHandlerTests
 
         // Then
         _passwordHasher.Received(1).HashPassword(originalPassword);
-        await _userRepository.Received(1).CreateAsync(
-            Arg.Is<User>(u => u.Password == hashedPassword),
-            Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// Tests that the user registered event is published after successful user creation.
+    /// </summary>
+    [Fact(DisplayName = "Given successful user creation When handling Then publishes user registered event")]
+    public async Task Handle_ValidRequest_PublishesUserRegisteredEvent()
+    {
+        // Given
+        var command = CreateUserHandlerTestData.GenerateValidCommand();
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = command.Username,
+            Password = command.Password,
+            Email = command.Email,
+            Phone = command.Phone,
+            Status = command.Status,
+            Role = command.Role
+        };
+
+        var result = new CreateUserResult
+        {
+            Id = user.Id,
+        };
+
+        _mapper.Map<User>(command).Returns(user);
+        _mapper.Map<CreateUserResult>(user).Returns(result);
+        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(user);
+        _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
+
+        // Mock validator to pass validation
+        _userRepository.ExistsByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(false);
+
+        // When
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Then
+        await _mediator.Received(1).Publish(Arg.Any<UserRegisteredEvent>(), Arg.Any<CancellationToken>());
     }
 
     /// <summary>

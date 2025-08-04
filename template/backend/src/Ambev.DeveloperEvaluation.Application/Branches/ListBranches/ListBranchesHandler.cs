@@ -1,36 +1,47 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Application.Branches.ListBranches;
 
-public class ListBranchesHandler : IRequestHandler<ListBranchesCommand, ListBranchesResult>
+public class ListBranchesHandler : BaseHandler<ListBranchesCommand, ListBranchesResult, ListBranchesCommandValidator>
 {
     private readonly IBranchRepository _branchRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<ListBranchesHandler> _logger;
 
     public ListBranchesHandler(
         IBranchRepository branchRepository, 
         IMapper mapper,
-        ILogger<ListBranchesHandler> logger)
+        ILogger<ListBranchesHandler> logger,
+        ListBranchesCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _branchRepository = branchRepository;
-        _mapper = mapper;
-        _logger = logger;
     }
 
-    public async Task<ListBranchesResult> Handle(ListBranchesCommand request, CancellationToken cancellationToken)
+    protected override async Task<ListBranchesResult> ExecuteAsync(ListBranchesCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Listing branches with page {PageNumber} and size {PageSize}", request.PageNumber, request.PageSize);
-
         var (branches, totalCount) = await _branchRepository.GetAllAsync(request.PageNumber, request.PageSize, cancellationToken);
 
-        var branchItems = _mapper.Map<IEnumerable<BranchListItem>>(branches);
-
-        _logger.LogDebug("Found {BranchCount} branches out of {TotalCount} total", branchItems.Count(), totalCount);
+        var branchItems = Mapper.Map<IEnumerable<BranchListItem>>(branches);
 
         return new ListBranchesResult(branchItems, totalCount, request.PageNumber, request.PageSize);
+    }
+
+    protected override void LogOperationStart(ListBranchesCommand request)
+    {
+        Logger.LogInformation("Listing branches with page {PageNumber} and size {PageSize}", request.PageNumber, request.PageSize);
+    }
+
+    protected override void LogOperationSuccess(ListBranchesCommand request, ListBranchesResult result)
+    {
+        if (result != null && result.Items != null)
+        {
+            Logger.LogInformation("Branches listed successfully. Retrieved {Count} branches", result.Items.Count());
+        }
+        else
+        {
+            Logger.LogWarning("Branches listing completed but result or items is null");
+        }
     }
 } 

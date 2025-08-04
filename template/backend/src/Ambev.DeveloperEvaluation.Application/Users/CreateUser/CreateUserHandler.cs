@@ -1,21 +1,22 @@
-﻿using AutoMapper;
-using MediatR;
-using FluentValidation;
-using Ambev.DeveloperEvaluation.Domain.Repositories;
-using Ambev.DeveloperEvaluation.Domain.Entities;
+﻿using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Common.Security;
+using Ambev.DeveloperEvaluation.Domain.Entities;
+using Ambev.DeveloperEvaluation.Domain.Events;
+using Ambev.DeveloperEvaluation.Domain.Repositories;
+using AutoMapper;
+using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Application.Users.CreateUser;
 
 /// <summary>
 /// Handler for processing CreateUserCommand requests
 /// </summary>
-public class CreateUserHandler : IRequestHandler<CreateUserCommand, CreateUserResult>
+public class CreateUserHandler : BaseHandler<CreateUserCommand, CreateUserResult, CreateUserCommandValidator>
 {
     private readonly IUserRepository _userRepository;
-    private readonly IMapper _mapper;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly CreateUserCommandValidator _validator;
+    private readonly IMediator _mediator;
 
     /// <summary>
     /// Initializes a new instance of CreateUserHandler
@@ -24,12 +25,14 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, CreateUserRe
     /// <param name="mapper">The AutoMapper instance</param>
     /// <param name="passwordHasher">The password hasher</param>
     /// <param name="validator">The validator for CreateUserCommand</param>
-    public CreateUserHandler(IUserRepository userRepository, IMapper mapper, IPasswordHasher passwordHasher, CreateUserCommandValidator validator)
+    /// <param name="logger">The logger instance</param>
+    /// <param name="mediator">The mediator instance</param>
+    public CreateUserHandler(IUserRepository userRepository, IMapper mapper, IPasswordHasher passwordHasher, CreateUserCommandValidator validator, ILogger<CreateUserHandler> logger, IMediator mediator)
+        : base(mapper, logger, validator)
     {
         _userRepository = userRepository;
-        _mapper = mapper;
         _passwordHasher = passwordHasher;
-        _validator = validator;
+        _mediator = mediator;
     }
 
     /// <summary>
@@ -38,18 +41,33 @@ public class CreateUserHandler : IRequestHandler<CreateUserCommand, CreateUserRe
     /// <param name="command">The CreateUser command</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The created user details</returns>
-    public async Task<CreateUserResult> Handle(CreateUserCommand command, CancellationToken cancellationToken)
+    protected override async Task<CreateUserResult> ExecuteAsync(CreateUserCommand command, CancellationToken cancellationToken)
     {
-        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
-
-        if (!validationResult.IsValid)
-            throw new ValidationException(validationResult.Errors);
-
-        var user = _mapper.Map<User>(command);
+        var user = Mapper.Map<User>(command);
         user.Password = _passwordHasher.HashPassword(command.Password);
 
         var createdUser = await _userRepository.CreateAsync(user, cancellationToken);
-        var result = _mapper.Map<CreateUserResult>(createdUser);
-        return result;
+
+        var userRegisteredEvent = new UserRegisteredEvent(createdUser);
+        await _mediator.Publish(userRegisteredEvent, cancellationToken);
+
+        return Mapper.Map<CreateUserResult>(createdUser);
+    }
+
+    protected override void LogOperationStart(CreateUserCommand request)
+    {
+        Logger.LogInformation("Creating user with email: {Email}", request.Email);
+    }
+
+    protected override void LogOperationSuccess(CreateUserCommand request, CreateUserResult result)
+    {
+        if (result != null)
+        {
+            Logger.LogInformation("User created successfully with ID: {UserId}", result.Id);
+        }
+        else
+        {
+            Logger.LogWarning("User creation completed but result is null");
+        }
     }
 }

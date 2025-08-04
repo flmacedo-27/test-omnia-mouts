@@ -3,6 +3,7 @@ using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using FluentAssertions;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -27,7 +28,8 @@ public class GetBranchHandlerTests
         _branchRepository = Substitute.For<IBranchRepository>();
         _mapper = Substitute.For<IMapper>();
         _logger = Substitute.For<ILogger<GetBranchHandler>>();
-        _handler = new GetBranchHandler(_branchRepository, _mapper, _logger);
+        var validator = new GetBranchCommandValidator(_branchRepository);
+        _handler = new GetBranchHandler(_branchRepository, _mapper, _logger, validator);
     }
 
     /// <summary>
@@ -69,7 +71,7 @@ public class GetBranchHandlerTests
         getBranchResult.Name.Should().Be(branch.Name);
         getBranchResult.Code.Should().Be(branch.Code);
         getBranchResult.Address.Should().Be(branch.Address);
-        await _branchRepository.Received(1).GetByIdAsync(branchId, Arg.Any<CancellationToken>());
+        await _branchRepository.Received(2).GetByIdAsync(branchId, Arg.Any<CancellationToken>());
     }
 
     /// <summary>
@@ -86,12 +88,10 @@ public class GetBranchHandlerTests
             .Returns((Branch?)null);
 
         // When
-        var getBranchResult = await _handler.Handle(command, CancellationToken.None);
+        var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Then
-        getBranchResult.Should().BeNull();
-        await _branchRepository.Received(1).GetByIdAsync(branchId, Arg.Any<CancellationToken>());
-        _mapper.DidNotReceive().Map<GetBranchResult>(Arg.Any<Branch>());
+        await act.Should().ThrowAsync<ValidationException>();
     }
 
     /// <summary>
@@ -121,10 +121,10 @@ public class GetBranchHandlerTests
         await _handler.Handle(command, CancellationToken.None);
 
         // Then
-        _logger.Received(1).Log(
-            LogLevel.Debug,
+        _logger.Received(2).Log(
+            LogLevel.Information,
             Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString().Contains(branchId.ToString()) && o.ToString().Contains(branch.Name)),
+            Arg.Is<object>(o => o.ToString().Contains(branchId.ToString())),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception, string>>());
     }
@@ -143,15 +143,10 @@ public class GetBranchHandlerTests
             .Returns((Branch?)null);
 
         // When
-        await _handler.Handle(command, CancellationToken.None);
+        var act = () => _handler.Handle(command, CancellationToken.None);
 
         // Then
-        _logger.Received(1).Log(
-            LogLevel.Warning,
-            Arg.Any<EventId>(),
-            Arg.Is<object>(o => o.ToString().Contains(branchId.ToString())),
-            Arg.Any<Exception>(),
-            Arg.Any<Func<object, Exception, string>>());
+        await act.Should().ThrowAsync<ValidationException>();
     }
 
     /// <summary>
@@ -181,7 +176,7 @@ public class GetBranchHandlerTests
         await _handler.Handle(command, CancellationToken.None);
 
         // Then
-        _logger.Received(1).Log(
+        _logger.Received(2).Log(
             LogLevel.Information,
             Arg.Any<EventId>(),
             Arg.Is<object>(o => o.ToString().Contains(branchId.ToString())),

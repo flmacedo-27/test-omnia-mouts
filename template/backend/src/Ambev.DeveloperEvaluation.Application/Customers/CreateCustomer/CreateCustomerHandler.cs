@@ -1,43 +1,27 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
-using MediatR;
 using Microsoft.Extensions.Logging;
-using FluentValidation;
 
 namespace Ambev.DeveloperEvaluation.Application.Customers.CreateCustomer;
 
-public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommand, CreateCustomerResult>
+public class CreateCustomerHandler : BaseHandler<CreateCustomerCommand, CreateCustomerResult, CreateCustomerCommandValidator>
 {
     private readonly ICustomerRepository _customerRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CreateCustomerHandler> _logger;
-    private readonly CreateCustomerCommandValidator _validator;
 
     public CreateCustomerHandler(
         ICustomerRepository customerRepository, 
         IMapper mapper,
         ILogger<CreateCustomerHandler> logger,
         CreateCustomerCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _customerRepository = customerRepository;
-        _mapper = mapper;
-        _logger = logger;
-        _validator = validator;
     }
 
-    public async Task<CreateCustomerResult> Handle(CreateCustomerCommand request, CancellationToken cancellationToken)
+    protected override async Task<CreateCustomerResult> ExecuteAsync(CreateCustomerCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Creating customer with name: {CustomerName}, Email: {Email}", request.Name, request.Email);
-
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            _logger.LogWarning("Validation failed for customer creation: {ValidationErrors}", 
-                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var customer = new Customer
         {
             Name = request.Name,
@@ -49,8 +33,23 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommand, Crea
 
         var createdCustomer = await _customerRepository.CreateAsync(customer, cancellationToken);
 
-        _logger.LogInformation("Customer created successfully with ID: {CustomerId}", createdCustomer.Id);
+        return Mapper.Map<CreateCustomerResult>(createdCustomer);
+    }
 
-        return _mapper.Map<CreateCustomerResult>(createdCustomer);
+    protected override void LogOperationStart(CreateCustomerCommand request)
+    {
+        Logger.LogInformation("Creating customer with name: {CustomerName}, Email: {Email}", request.Name, request.Email);
+    }
+
+    protected override void LogOperationSuccess(CreateCustomerCommand request, CreateCustomerResult result)
+    {
+        if (result != null)
+        {
+            Logger.LogInformation("Customer created successfully with ID: {CustomerId}", result.Id);
+        }
+        else
+        {
+            Logger.LogWarning("Customer creation completed but result is null");
+        }
     }
 } 

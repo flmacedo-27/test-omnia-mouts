@@ -1,8 +1,9 @@
 using Ambev.DeveloperEvaluation.Domain.Entities;
+using MediatR;
 
 namespace Ambev.DeveloperEvaluation.Domain.Events
 {
-    public class UserRegisteredEvent
+    public class UserRegisteredEvent : INotification
     {
         public User User { get; }
 
