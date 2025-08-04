@@ -41,7 +41,7 @@ public class CreateSaleHandlerTests
         _logger = Substitute.For<ILogger<CreateSaleHandler>>();
         _mediator = Substitute.For<IMediator>();
         _validator = new CreateSaleCommandValidator(_customerRepository, _branchRepository, _productRepository);
-        _handler = new CreateSaleHandler(_saleRepository, _customerRepository, _branchRepository, _productRepository, _mapper, _logger, _mediator, _validator);
+        _handler = new CreateSaleHandler(_saleRepository, _productRepository, _mapper, _logger, _mediator, _validator);
     }
 
     /// <summary>

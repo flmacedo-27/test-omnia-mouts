@@ -1,8 +1,8 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Enums;
 using Ambev.DeveloperEvaluation.Domain.Events;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
-using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -11,14 +11,11 @@ namespace Ambev.DeveloperEvaluation.Application.Sales.CancelSale;
 /// <summary>
 /// Handler for cancelling a sale
 /// </summary>
-public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleResult>
+public class CancelSaleHandler : BaseHandler<CancelSaleCommand, CancelSaleResult, CancelSaleCommandValidator>
 {
     private readonly ISaleRepository _saleRepository;
     private readonly IProductRepository _productRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<CancelSaleHandler> _logger;
     private readonly IMediator _mediator;
-    private readonly CancelSaleCommandValidator _validator;
 
     public CancelSaleHandler(
         ISaleRepository saleRepository,
@@ -27,27 +24,15 @@ public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleRe
         ILogger<CancelSaleHandler> logger,
         IMediator mediator,
         CancelSaleCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _saleRepository = saleRepository;
         _productRepository = productRepository;
-        _mapper = mapper;
-        _logger = logger;
         _mediator = mediator;
-        _validator = validator;
     }
 
-    public async Task<CancelSaleResult> Handle(CancelSaleCommand request, CancellationToken cancellationToken)
+    protected override async Task<CancelSaleResult> ExecuteAsync(CancelSaleCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Cancelling sale with ID {SaleId}", request.Id);
-
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            _logger.LogWarning("Validation failed for sale cancelation: {ValidationErrors}",
-                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            throw new ValidationException(validationResult.Errors);
-        }
-
         var sale = await _saleRepository.GetByIdAsync(request.Id, cancellationToken);
         
         if (sale.Status == SaleStatus.Cancelled)
@@ -67,8 +52,6 @@ public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleRe
 
         var updatedSale = await _saleRepository.UpdateAsync(sale, cancellationToken);
 
-        _logger.LogInformation("Sale {SaleNumber} cancelled successfully", sale.SaleNumber);
-
         var saleCancelledEvent = new SaleCancelledEvent(
             updatedSale.Id,
             updatedSale.SaleNumber,
@@ -77,6 +60,23 @@ public class CancelSaleHandler : IRequestHandler<CancelSaleCommand, CancelSaleRe
 
         await _mediator.Publish(saleCancelledEvent, cancellationToken);
 
-        return _mapper.Map<CancelSaleResult>(updatedSale);
+        return Mapper.Map<CancelSaleResult>(updatedSale);
+    }
+
+    protected override void LogOperationStart(CancelSaleCommand request)
+    {
+        Logger.LogInformation("Cancelling sale with ID {SaleId}", request.Id);
+    }
+
+    protected override void LogOperationSuccess(CancelSaleCommand request, CancelSaleResult result)
+    {
+        if (result != null)
+        {
+            Logger.LogInformation("Sale {SaleNumber} cancelled successfully", result.SaleNumber);
+        }
+        else
+        {
+            Logger.LogWarning("Sale cancellation completed but result is null");
+        }
     }
 } 

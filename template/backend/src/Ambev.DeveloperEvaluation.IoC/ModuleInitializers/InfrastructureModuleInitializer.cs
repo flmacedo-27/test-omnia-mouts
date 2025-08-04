@@ -12,10 +12,28 @@ public class InfrastructureModuleInitializer : IModuleInitializer
     public void Initialize(WebApplicationBuilder builder)
     {
         builder.Services.AddScoped<DbContext>(provider => provider.GetRequiredService<DefaultContext>());
-        builder.Services.AddScoped<IUserRepository, UserRepository>();
-        builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-        builder.Services.AddScoped<IBranchRepository, BranchRepository>();
-        builder.Services.AddScoped<IProductRepository, ProductRepository>();
-        builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+        
+        RegisterRepositories(builder.Services);
+    }
+
+    /// <summary>
+    /// Registers all repository interfaces with their implementations using reflection
+    /// </summary>
+    /// <param name="services">The service collection</param>
+    private static void RegisterRepositories(IServiceCollection services)
+    {
+        var repositoryMappings = new Dictionary<Type, Type>
+        {
+            { typeof(IUserRepository), typeof(UserRepository) },
+            { typeof(ICustomerRepository), typeof(CustomerRepository) },
+            { typeof(IBranchRepository), typeof(BranchRepository) },
+            { typeof(IProductRepository), typeof(ProductRepository) },
+            { typeof(ISaleRepository), typeof(SaleRepository) }
+        };
+
+        foreach (var mapping in repositoryMappings)
+        {
+            services.AddScoped(mapping.Key, mapping.Value);
+        }
     }
 }

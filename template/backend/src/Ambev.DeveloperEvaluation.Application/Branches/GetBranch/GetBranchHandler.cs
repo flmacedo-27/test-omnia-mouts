@@ -1,40 +1,38 @@
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
-using MediatR;
 using Microsoft.Extensions.Logging;
 
 namespace Ambev.DeveloperEvaluation.Application.Branches.GetBranch;
 
-public class GetBranchHandler : IRequestHandler<GetBranchCommand, GetBranchResult?>
+public class GetBranchHandler : BaseHandler<GetBranchCommand, GetBranchResult?, GetBranchCommandValidator>
 {
     private readonly IBranchRepository _branchRepository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<GetBranchHandler> _logger;
 
     public GetBranchHandler(
         IBranchRepository branchRepository, 
         IMapper mapper,
-        ILogger<GetBranchHandler> logger)
+        ILogger<GetBranchHandler> logger,
+        GetBranchCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _branchRepository = branchRepository;
-        _mapper = mapper;
-        _logger = logger;
     }
 
-    public async Task<GetBranchResult?> Handle(GetBranchCommand request, CancellationToken cancellationToken)
+    protected override async Task<GetBranchResult?> ExecuteAsync(GetBranchCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting branch with ID: {BranchId}", request.Id);
-
         var branch = await _branchRepository.GetByIdAsync(request.Id, cancellationToken);
         
-        if (branch == null)
-        {
-            _logger.LogWarning("Branch not found with ID: {BranchId}", request.Id);
-            return null;
-        }
+        return Mapper.Map<GetBranchResult>(branch);
+    }
 
-        _logger.LogDebug("Branch found with ID: {BranchId}, Name: {BranchName}", request.Id, branch.Name);
+    protected override void LogOperationStart(GetBranchCommand request)
+    {
+        Logger.LogInformation("Getting branch with ID: {BranchId}", request.Id);
+    }
 
-        return _mapper.Map<GetBranchResult>(branch);
+    protected override void LogOperationSuccess(GetBranchCommand request, GetBranchResult? result)
+    {
+        Logger.LogInformation("Branch retrieved successfully with ID: {BranchId}", request.Id);
     }
 } 

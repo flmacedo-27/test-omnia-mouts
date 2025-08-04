@@ -178,5 +178,12 @@ public class CreateBranchHandlerTests
             Arg.Is<object>(o => o.ToString().Contains(command.Name)),
             Arg.Any<Exception>(),
             Arg.Any<Func<object, Exception, string>>());
+        
+        _logger.Received(1).Log(
+            LogLevel.Information,
+            Arg.Any<EventId>(),
+            Arg.Is<object>(o => o.ToString().Contains("Branch created successfully")),
+            Arg.Any<Exception>(),
+            Arg.Any<Func<object, Exception, string>>());
     }
 } 

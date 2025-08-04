@@ -1,9 +1,11 @@
+using MediatR;
+
 namespace Ambev.DeveloperEvaluation.Domain.Events;
 
 /// <summary>
 /// Event raised when a sale is created
 /// </summary>
-public class SaleCreatedEvent
+public class SaleCreatedEvent : INotification
 {
     /// <summary>
     /// Gets or sets the sale ID

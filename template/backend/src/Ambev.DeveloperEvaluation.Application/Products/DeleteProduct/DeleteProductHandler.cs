@@ -1,46 +1,42 @@
-using MediatR;
+using Ambev.DeveloperEvaluation.Application.Common;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
+using AutoMapper;
 using Microsoft.Extensions.Logging;
-using FluentValidation;
 
 namespace Ambev.DeveloperEvaluation.Application.Products.DeleteProduct;
 
-public class DeleteProductHandler : IRequestHandler<DeleteProductCommand, DeleteProductResult>
+public class DeleteProductHandler : BaseHandler<DeleteProductCommand, DeleteProductResult, DeleteProductCommandValidator>
 {
     private readonly IProductRepository _productRepository;
-    private readonly ILogger<DeleteProductHandler> _logger;
-    private readonly DeleteProductCommandValidator _validator;
 
     public DeleteProductHandler(
         IProductRepository productRepository,
+        IMapper mapper,
         ILogger<DeleteProductHandler> logger,
         DeleteProductCommandValidator validator)
+        : base(mapper, logger, validator)
     {
         _productRepository = productRepository;
-        _logger = logger;
-        _validator = validator;
     }
 
-    public async Task<DeleteProductResult> Handle(DeleteProductCommand request, CancellationToken cancellationToken)
+    protected override async Task<DeleteProductResult> ExecuteAsync(DeleteProductCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Deleting product with ID: {ProductId}", request.Id);
-
-        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            _logger.LogWarning("Validation failed for product deletion: {ValidationErrors}", 
-                string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
-            throw new ValidationException(validationResult.Errors);
-        }
-
         await _productRepository.DeleteAsync(request.Id, cancellationToken);
-        
-        _logger.LogInformation("Product deleted successfully with ID: {ProductId}", request.Id);
 
         return new DeleteProductResult
         {
             Success = true,
             Message = "Product deleted successfully"
         };
+    }
+
+    protected override void LogOperationStart(DeleteProductCommand request)
+    {
+        Logger.LogInformation("Deleting product with ID: {ProductId}", request.Id);
+    }
+
+    protected override void LogOperationSuccess(DeleteProductCommand request, DeleteProductResult result)
+    {
+        Logger.LogInformation("Product deleted successfully with ID: {ProductId}", request.Id);
     }
 } 
