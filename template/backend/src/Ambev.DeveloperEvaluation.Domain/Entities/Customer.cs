@@ -55,6 +55,7 @@ public class Customer : BaseEntity
     public Customer()
     {
         CreatedAt = DateTime.UtcNow;
+        Active = true;
     }
 
     /// <summary>

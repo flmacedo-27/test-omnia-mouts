@@ -32,8 +32,7 @@ public class CreateCustomerHandler : IRequestHandler<CreateCustomerCommand, Crea
             Email = request.Email,
             Phone = request.Phone,
             CustomerType = request.CustomerType,
-            DocumentNumber = request.DocumentNumber,
-            Active = true
+            DocumentNumber = request.DocumentNumber
         };
 
         var createdCustomer = await _customerRepository.CreateAsync(customer, cancellationToken);
