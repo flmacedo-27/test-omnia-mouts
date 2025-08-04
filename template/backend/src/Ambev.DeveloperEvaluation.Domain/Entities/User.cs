@@ -143,4 +143,24 @@ public class User : BaseEntity, IUser
         Status = UserStatus.Suspended;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Updates the user's information with new values.
+    /// </summary>
+    /// <param name="name">The new username</param>
+    /// <param name="email">The new email address</param>
+    /// <param name="phone">The new phone number</param>
+    /// <param name="password">The new password</param>
+    /// <param name="role">The new role</param>
+    /// <param name="status">The new status</param>
+    public void Update(string name, string email, string phone, string password, UserRole role, UserStatus status)
+    {
+        Username = name;
+        Email = email;
+        Phone = phone;
+        Password = password;
+        Role = role;
+        Status = status;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

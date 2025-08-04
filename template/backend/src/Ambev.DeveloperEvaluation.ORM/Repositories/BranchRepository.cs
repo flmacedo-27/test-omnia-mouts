@@ -81,26 +81,44 @@ public class BranchRepository : IBranchRepository
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             var branch = await GetByIdAsync(id, cancellationToken);
-            if (branch == null)
-            {
-                _logger.LogWarning("Branch not found for deletion with ID: {BranchId}", id);
-                return false;
-            }
-
             _context.Branches.Remove(branch);
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("Branch deleted successfully with ID: {BranchId}", id);
-            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error deleting branch with ID: {BranchId}", id);
             throw;
+        }
+    }
+
+    public async Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Branches.AnyAsync(b => b.Code == code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if branch exists with code: {BranchCode}", code);
+            throw new InvalidOperationException("Failed to check if branch exists", ex);
+        }
+    }
+
+    public async Task<Branch?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Branches.FirstOrDefaultAsync(b => b.Code == code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving branch with code: {BranchCode}", code);
+            throw new InvalidOperationException("Failed to retrieve branch by code", ex);
         }
     }
 } 

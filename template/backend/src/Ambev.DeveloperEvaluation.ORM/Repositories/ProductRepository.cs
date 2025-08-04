@@ -81,26 +81,71 @@ public class ProductRepository : IProductRepository
         }
     }
 
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try
         {
             var product = await GetByIdAsync(id, cancellationToken);
-            if (product == null)
-            {
-                _logger.LogWarning("Product not found for deletion with ID: {ProductId}", id);
-                return false;
-            }
-
+            
             _context.Products.Remove(product);
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogDebug("Product deleted successfully with ID: {ProductId}", id);
-            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error deleting product with ID: {ProductId}", id);
             throw;
+        }
+    }
+
+    public async Task<Product?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product with code: {ProductCode}", code);
+            throw new InvalidOperationException("Failed to retrieve product by code", ex);
+        }
+    }
+
+    public async Task<Product?> GetBySKUAsync(string sku, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.FirstOrDefaultAsync(p => p.SKU == sku, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving product with SKU: {ProductSKU}", sku);
+            throw new InvalidOperationException("Failed to retrieve product by SKU", ex);
+        }
+    }
+
+    public async Task<bool> ExistsByCodeAsync(string code, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.AnyAsync(p => p.Code == code, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if product exists with code: {ProductCode}", code);
+            throw new InvalidOperationException("Failed to check if product exists", ex);
+        }
+    }
+
+    public async Task<bool> ExistsBySKUAsync(string sku, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _context.Products.AnyAsync(p => p.SKU == sku, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if product exists with SKU: {ProductSKU}", sku);
+            throw new InvalidOperationException("Failed to check if product exists", ex);
         }
     }
 } 
